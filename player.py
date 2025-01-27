@@ -36,17 +36,24 @@ async def resume_server():
 async def root():
     return {"Hello": "World"}
 
-async def ping(server_host, server_port):
+async def ping(server_host, server_port, pong_time_ms):
 
-        await controlled_sleep(1000)  # Pause sleep for 1 seconds
+        await controlled_sleep(pong_time_ms)  # Pause sleep for 1 seconds
         print("read_root:", server_host, server_port)
         try:
             message = ""
             if server_port == '8000':
-                response =  requests.get(f"http://{server_host}:8001/ping")
+                if pong_time_ms:
+                    response =  requests.get(f"http://{server_host}:8001/ping?pong_time_ms={pong_time_ms}")
+                else:
+                    response = requests.get(f"http://{server_host}:8001/ping?pong_time_ms=1000")
                 message = f"Received pong from {server_host}:8001 response :  {response}"
             else:
-                response = requests.get(f"http://{server_host}:8000/ping")
+                if pong_time_ms:
+                    response = requests.get(f"http://{server_host}:8000/ping?pong_time_ms={pong_time_ms}")
+                else:
+                    response = requests.get(f"http://{server_host}:8000/ping?pong_time_ms=1000")
+
                 message = f"Received pong from {server_host}:8000 response :  {response}"
             response.raise_for_status()  # Raise an exception for bad status codes
             print(message)
@@ -56,9 +63,9 @@ async def ping(server_host, server_port):
 
 
 @app.get("/ping")
-async def read_item(request: Request):
+async def read_item(pong_time_ms: int = None, request: Request = None):
     server_host, server_port = request.headers.get("host").split(":")
     print("got ping")
-    asyncio.create_task(ping(server_host,server_port))
+    asyncio.create_task(ping(server_host,server_port, pong_time_ms ))
     # print(f"pong from {server_port}")
     return {"pong"}
